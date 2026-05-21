@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum ConsultationMode {
+  ON_SITE
+  PHONE
+  VIDEO
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Specialization {
+  GENERAL_PHYSICIAN
+  GASTROENTEROLOGY
+  NEUROLOGY
+  CARDIOLOGY
+  ONCOLOGY
+  ORTHOPAEDICS
+  DENTISTRY
+  OPHTHALMOLOGY
+  PSYCHOLOGY
+  PSYCHIATRY
+  DERMATOLOGY
+  PEDIATRICS
+  GYNECOLOGY
+  ENT
+  UROLOGY
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(PATIENT)
+  phone        String?
+  otpVerified  Boolean  @default(false)
+  otpCode      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient Patient?
+  doctor  Doctor?
+}
+
+model Patient {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  fullName         String
+  age              Int
+  gender           Gender
+  height           Float?
+  weight           Float?
+  bloodGroup       String?
+  allergies        String?
+  existingDiseases String?
+  emergencyContact String?
+  insuranceInfo    String?
+  isActive         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyMembers  FamilyMember[]
+  appointments   Appointment[]
+  reviews        Review[]
+  prescriptions  Prescription[]
+}
+
+model FamilyMember {
+  id        String   @id @default(cuid())
+  patientId String
+  fullName  String
+  age       Int
+  gender    Gender
+  relation  String
+  createdAt DateTime @default(now())
+
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+model Doctor {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  fullName         String
+  qualification    String
+  experienceYears  Int
+  specialization   Specialization
+  consultationFee  Int
+  languages        Json
+  modes            Json
+  bio              String?
+  verified         Boolean          @default(false)
+  averageRating    Float            @default(0)
+  reviewCount      Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinics      Clinic[]
+  availability AvailabilitySlot[]
+  appointments Appointment[]
+  reviews      Review[]
+  prescriptions Prescription[]
+}
+
+model Clinic {
+  id        String   @id @default(cuid())
+  doctorId  String
+  name      String
+  address   String
+  city      String
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+model AvailabilitySlot {
+  id        String           @id @default(cuid())
+  doctorId  String
+  date      DateTime
+  startTime String
+  endTime   String
+  mode      ConsultationMode
+  isBlocked Boolean          @default(false)
+  booked    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  patientId      String
+  doctorId       String
+  familyMemberId String?
+  clinicId       String?
+  slotId         String?
+  mode           ConsultationMode
+  status         AppointmentStatus @default(PENDING)
+  scheduledAt    DateTime
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  patient      Patient           @relation(fields: [patientId], references: [id])
+  doctor       Doctor            @relation(fields: [doctorId], references: [id])
+  familyMember FamilyMember?     @relation(fields: [familyMemberId], references: [id])
+  clinic       Clinic?           @relation(fields: [clinicId], references: [id])
+  slot         AvailabilitySlot? @relation(fields: [slotId], references: [id])
+  prescription Prescription?
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  patientId String
+  doctorId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id])
+  doctor  Doctor  @relation(fields: [doctorId], references: [id])
+
+  @@unique([patientId, doctorId])
+}
+
+model Prescription {
+  id            String   @id @default(cuid())
+  appointmentId String?  @unique
+  patientId     String
+  doctorId      String
+  diagnosis     String
+  medications   String
+  instructions  String?
+  createdAt     DateTime @default(now())
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  doctor      Doctor       @relation(fields: [doctorId], references: [id])
+}

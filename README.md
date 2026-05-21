@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CareConnect Health — Digital Healthcare Platform
 
-## Getting Started
+Secure, multi-user healthcare platform built with **Next.js 14** (App Router), **SQLite** (local dev) / **PostgreSQL** (production), **Prisma**, **NextAuth.js**, and **Tailwind CSS**.
 
-First, run the development server:
+## Features
+
+- **Patient**: Registration with OTP activation, family profiles, doctor discovery, on-site / phone / video booking
+- **Doctor**: Schedule management, fee updates, patient history, digital prescriptions
+- **Admin**: Analytics, doctor verification queue, moderation overview
+- **Security**: bcrypt password hashing, JWT sessions, RBAC on all protected APIs
+
+## Quick Start
+
+### 1. Prerequisites
+
+- Node.js 18+
+- No database server required for local dev (uses **SQLite** file at `prisma/dev.db`)
+
+### 2. Install & database
+
+```bash
+npm install
+npm run db:setup
+```
+
+`db:setup` runs `prisma db push` and seeds demo data.
+
+### 3. Environment
+
+Copy `.env.example` to `.env`. Defaults:
+
+- `DATABASE_URL` — `file:./dev.db` (SQLite in `prisma/` folder)
+- `NEXTAUTH_SECRET` — random secret (32+ chars)
+- `NEXTAUTH_URL` — `http://localhost:3000`
+
+For production, switch `provider` in `prisma/schema.prisma` to `postgresql` and set a Postgres `DATABASE_URL`.
+
+### 4. Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo Accounts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Role    | Email                     | Password       |
+|---------|---------------------------|----------------|
+| Patient | patient@healthcare.com    | Password123!   |
+| Doctor  | dr.sharma@healthcare.com  | Password123!   |
+| Admin   | admin@healthcare.com      | Password123!   |
 
-## Learn More
+**OTP (new registrations):** `123456`
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+prisma/schema.prisma     # Database models
+prisma/seed.ts           # Demo data
+src/app/api/             # REST API routes
+src/app/(auth)/          # Login, register, OTP
+src/app/patient/         # Patient dashboards & booking
+src/app/doctor/          # Doctor dashboards
+src/app/admin/           # Admin dashboards
+src/components/          # UI components
+src/lib/                 # Prisma, auth, utilities
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command        | Description              |
+|----------------|--------------------------|
+| `npm run dev`  | Start dev server         |
+| `npm run build`| Production build         |
+| `npm run db:seed` | Seed database         |
+| `npm run db:push` | Sync schema to DB    |
