@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -110,8 +111,8 @@ model Doctor {
   experienceYears  Int
   specialization   Specialization
   consultationFee  Int
-  languages        Json
-  modes            Json
+  languages        String[]
+  modes            ConsultationMode[]
   bio              String?
   verified         Boolean          @default(false)
   averageRating    Float            @default(0)

@@ -1,6 +1,6 @@
 # CareConnect Health — Digital Healthcare Platform
 
-Secure, multi-user healthcare platform built with **Next.js 14** (App Router), **SQLite** (local dev) / **PostgreSQL** (production), **Prisma**, **NextAuth.js**, and **Tailwind CSS**.
+Secure, multi-user healthcare platform built with **Next.js 14** (App Router), **Supabase PostgreSQL**, **Prisma**, **NextAuth.js**, and **Tailwind CSS**.
 
 ## Features
 
@@ -14,9 +14,20 @@ Secure, multi-user healthcare platform built with **Next.js 14** (App Router), *
 ### 1. Prerequisites
 
 - Node.js 18+
-- No database server required for local dev (uses **SQLite** file at `prisma/dev.db`)
+- A [Supabase](https://supabase.com) project (PostgreSQL)
 
-### 2. Install & database
+### 2. Environment
+
+Copy `.env.example` to `.env` and set:
+
+- `DATABASE_URL` — Supabase **connection pooling** URL (Transaction mode, port 6543)
+- `DIRECT_URL` — Supabase **direct** URL (Session mode, port 5432; used by Prisma migrations)
+- `NEXTAUTH_SECRET` — random secret (32+ chars)
+- `NEXTAUTH_URL` — `http://localhost:3000`
+
+Find both URLs in Supabase → **Project Settings** → **Database**.
+
+### 3. Install & database
 
 ```bash
 npm install
@@ -24,16 +35,6 @@ npm run db:setup
 ```
 
 `db:setup` runs `prisma db push` and seeds demo data.
-
-### 3. Environment
-
-Copy `.env.example` to `.env`. Defaults:
-
-- `DATABASE_URL` — `file:./dev.db` (SQLite in `prisma/` folder)
-- `NEXTAUTH_SECRET` — random secret (32+ chars)
-- `NEXTAUTH_URL` — `http://localhost:3000`
-
-For production, switch `provider` in `prisma/schema.prisma` to `postgresql` and set a Postgres `DATABASE_URL`.
 
 ### 4. Run
 

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonSuccess } from "@/lib/api-auth";
-import { parseLanguages, parseModes } from "@/lib/doctor-json";
 
 export async function GET(
   _request: Request,
@@ -29,9 +28,5 @@ export async function GET(
   });
 
   if (!doctor) return jsonError("Doctor not found", 404);
-  return jsonSuccess({
-    ...doctor,
-    modes: parseModes(doctor.modes),
-    languages: parseLanguages(doctor.languages),
-  });
+  return jsonSuccess(doctor);
 }

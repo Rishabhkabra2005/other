@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { jsonSuccess } from "@/lib/api-auth";
-import { doctorHasMode } from "@/lib/doctor-json";
 import { ConsultationMode, Prisma, Specialization } from "@prisma/client";
 
 export async function GET(request: Request) {
@@ -16,6 +15,7 @@ export async function GET(request: Request) {
   };
 
   if (specialization) where.specialization = specialization;
+  if (mode) where.modes = { has: mode };
   if (minFee || maxFee) {
     where.consultationFee = {};
     if (minFee) where.consultationFee.gte = parseInt(minFee, 10);
@@ -23,12 +23,12 @@ export async function GET(request: Request) {
   }
   if (search) {
     where.OR = [
-      { fullName: { contains: search } },
-      { qualification: { contains: search } },
+      { fullName: { contains: search, mode: "insensitive" } },
+      { qualification: { contains: search, mode: "insensitive" } },
     ];
   }
 
-  let doctors = await prisma.doctor.findMany({
+  const doctors = await prisma.doctor.findMany({
     where,
     include: {
       reviews: { select: { rating: true } },
@@ -37,15 +37,5 @@ export async function GET(request: Request) {
     orderBy: { averageRating: "desc" },
   });
 
-  if (mode) {
-    doctors = doctors.filter((d) => doctorHasMode(d.modes, mode));
-  }
-
-  return jsonSuccess(
-    doctors.map((d) => ({
-      ...d,
-      modes: Array.isArray(d.modes) ? d.modes : [],
-      languages: Array.isArray(d.languages) ? d.languages : [],
-    }))
-  );
+  return jsonSuccess(doctors);
 }
