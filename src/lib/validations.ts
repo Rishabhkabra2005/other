@@ -21,8 +21,13 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export const otpSchema = z.object({
+export const sendOtpSchema = z.object({
+  phone: z.string().min(10, "Valid phone number required"),
+});
+
+export const verifyOtpSchema = z.object({
   email: z.string().email(),
+  phone: z.string().min(10, "Valid phone number required"),
   otp: z.string().length(6, "OTP must be 6 digits"),
 });
 

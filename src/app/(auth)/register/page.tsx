@@ -58,7 +58,9 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push(`/verify-otp?email=${encodeURIComponent(form.email)}`);
+    router.push(
+      `/verify-otp?email=${encodeURIComponent(form.email)}&phone=${encodeURIComponent(form.phone)}`
+    );
   }
 
   return (

@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonSuccess } from "@/lib/api-auth";
 import { registerSchema } from "@/lib/validations";
-import { MOCK_OTP } from "@/lib/constants";
+import { normalizePhone } from "@/lib/twilio";
 
 export async function POST(request: Request) {
   try {
@@ -26,10 +26,9 @@ export async function POST(request: Request) {
       data: {
         email,
         passwordHash,
-        phone: data.phone,
+        phone: normalizePhone(data.phone),
         role: "PATIENT",
         otpVerified: false,
-        otpCode: MOCK_OTP,
         patient: {
           create: {
             fullName: data.fullName,
@@ -51,10 +50,10 @@ export async function POST(request: Request) {
 
     return jsonSuccess(
       {
-        message: "Registration successful. Please verify OTP.",
+        message: "Registration successful. Please verify OTP sent to your phone.",
         email: user.email,
+        phone: user.phone,
         patientId: user.patient?.id,
-        mockOtpHint: process.env.NODE_ENV === "development" ? MOCK_OTP : undefined,
       },
       201
     );

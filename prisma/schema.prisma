@@ -66,6 +66,16 @@ model User {
   doctor  Doctor?
 }
 
+model OtpVerification {
+  id        String   @id @default(cuid())
+  phone     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
 model Patient {
   id               String   @id @default(cuid())
   userId           String   @unique

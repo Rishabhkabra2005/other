@@ -33,6 +33,4 @@ export const CONSULTATION_MODES: {
   { value: "VIDEO", label: "Video", description: "Secure video consultation" },
 ];
 
-export const MOCK_OTP = "123456";
-
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
