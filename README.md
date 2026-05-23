@@ -76,3 +76,4 @@ src/lib/                 # Prisma, auth, utilities
 | `npm run build`| Production build         |
 | `npm run db:seed` | Seed database         |
 | `npm run db:push` | Sync schema to DB    |
+ 
