@@ -100,9 +100,12 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
+        <Link href="/admin/add-doctor">
+          <Button>Add New Doctor</Button>
+        </Link>
         <Link href="/admin/verification">
-          <Button>Doctor Verification Queue</Button>
+          <Button variant="outline">Doctor Verification Queue</Button>
         </Link>
         <Link href="/admin/moderation">
           <Button variant="secondary">Moderation</Button>

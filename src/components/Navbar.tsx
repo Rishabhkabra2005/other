@@ -36,6 +36,7 @@ export function Navbar() {
         : role === "ADMIN"
           ? [
               { href: "/admin", label: "Overview" },
+              { href: "/admin/add-doctor", label: "Add Doctor" },
               { href: "/admin/verification", label: "Verification" },
               { href: "/admin/moderation", label: "Moderation" },
             ]

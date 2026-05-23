@@ -1,3 +1,4 @@
+import { Specialization } from "@prisma/client";
 import { z } from "zod";
 
 export const registerSchema = z.object({
@@ -66,4 +67,15 @@ export const reviewSchema = z.object({
   doctorId: z.string(),
   rating: z.coerce.number().min(1).max(5),
   comment: z.string().optional(),
+});
+
+export const addDoctorSchema = z.object({
+  fullName: z.string().min(2, "Full name is required"),
+  qualification: z.string().min(2, "Qualification is required"),
+  experienceYears: z.coerce.number().min(0).max(60),
+  specialization: z.enum(
+    Object.values(Specialization) as [Specialization, ...Specialization[]],
+    { message: "Please select a specialization" }
+  ),
+  consultationFee: z.coerce.number().min(0, "Fee must be zero or greater"),
 });
