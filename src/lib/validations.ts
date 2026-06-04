@@ -64,6 +64,11 @@ export const prescriptionSchema = z.object({
   markCompleted: z.boolean().optional(),
 });
 
+export const prescriptionSummarizeSchema = z.object({
+  medications: z.array(medicationSchema).min(1, "At least one medication is required"),
+  doctorNotes: z.string().optional(),
+});
+
 export const slotSchema = z.object({
   date: z.string(),
   startTime: z.string(),
