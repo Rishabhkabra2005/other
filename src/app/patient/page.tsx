@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Calendar, Search, Users } from "lucide-react";
+import { Calendar, FileText, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -41,7 +41,7 @@ export default function PatientDashboard() {
         <p className="text-lg text-slate-700 mt-2">Manage your health appointments and family profiles.</p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/patient/doctors">
           <Card className="hover:border-teal-500 cursor-pointer h-full">
             <CardContent className="flex items-center gap-4 py-6">
@@ -63,6 +63,14 @@ export default function PatientDashboard() {
             <CardContent className="flex items-center gap-4 py-6">
               <Users className="h-10 w-10 text-teal-700" />
               <span className="text-lg font-bold">Family Members</span>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/patient/prescriptions">
+          <Card className="hover:border-teal-500 cursor-pointer h-full">
+            <CardContent className="flex items-center gap-4 py-6">
+              <FileText className="h-10 w-10 text-teal-700" />
+              <span className="text-lg font-bold">Prescriptions</span>
             </CardContent>
           </Card>
         </Link>

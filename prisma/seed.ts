@@ -22,15 +22,19 @@ function slotTimes() {
 }
 
 async function main() {
-  await prisma.appointment.deleteMany();
-  await prisma.prescription.deleteMany();
-  await prisma.review.deleteMany();
-  await prisma.availabilitySlot.deleteMany();
-  await prisma.clinic.deleteMany();
-  await prisma.familyMember.deleteMany();
-  await prisma.patient.deleteMany();
-  await prisma.doctor.deleteMany();
-  await prisma.user.deleteMany();
+  // Delete child tables before parents (Prescription → Appointment FK on appointmentId).
+  await prisma.$transaction([
+    prisma.prescription.deleteMany(),
+    prisma.appointment.deleteMany(),
+    prisma.review.deleteMany(),
+    prisma.availabilitySlot.deleteMany(),
+    prisma.clinic.deleteMany(),
+    prisma.familyMember.deleteMany(),
+    prisma.patient.deleteMany(),
+    prisma.doctor.deleteMany(),
+    prisma.otpVerification.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 
   const passwordHash = await bcrypt.hash("Password123!", 12);
 
@@ -177,7 +181,10 @@ async function main() {
       include: { doctor: true },
     });
 
-    const doctorId = user.doctor!.id;
+    if (!user.doctor) {
+      throw new Error(`Doctor profile was not created for ${doc.email}`);
+    }
+    const doctorId = user.doctor.id;
 
     if (doc.modes.includes("ON_SITE")) {
       await prisma.clinic.createMany({
@@ -202,24 +209,34 @@ async function main() {
       });
     }
 
+    const slotRows: {
+      doctorId: string;
+      date: Date;
+      startTime: string;
+      endTime: string;
+      mode: ConsultationMode;
+      booked: boolean;
+      isBlocked: boolean;
+    }[] = [];
+
     for (let day = 0; day < 14; day++) {
       const date = addDays(day);
       for (const mode of doc.modes) {
         for (const t of slotTimes()) {
-          await prisma.availabilitySlot.create({
-            data: {
-              doctorId,
-              date,
-              startTime: t.start,
-              endTime: t.end,
-              mode,
-              booked: false,
-              isBlocked: false,
-            },
+          slotRows.push({
+            doctorId,
+            date,
+            startTime: t.start,
+            endTime: t.end,
+            mode,
+            booked: false,
+            isBlocked: false,
           });
         }
       }
     }
+
+    await prisma.availabilitySlot.createMany({ data: slotRows });
   }
 
   const patient = patientUser.patient!;
@@ -233,6 +250,58 @@ async function main() {
         comment: "Very patient and explained everything clearly.",
       },
     });
+
+    const slot = await prisma.availabilitySlot.findFirst({
+      where: { doctorId: firstDoctor.id, booked: false },
+      orderBy: { date: "asc" },
+    });
+
+    if (slot) {
+      const scheduledAt = new Date(slot.date);
+      const [h, m] = slot.startTime.split(":").map(Number);
+      scheduledAt.setHours(h, m, 0, 0);
+
+      const appointment = await prisma.appointment.create({
+        data: {
+          patientId: patient.id,
+          doctorId: firstDoctor.id,
+          slotId: slot.id,
+          mode: slot.mode,
+          status: "COMPLETED",
+          scheduledAt,
+        },
+      });
+
+      await prisma.availabilitySlot.update({
+        where: { id: slot.id },
+        data: { booked: true },
+      });
+
+      await prisma.prescription.create({
+        data: {
+          appointmentId: appointment.id,
+          patientId: patient.id,
+          doctorId: firstDoctor.id,
+          dateWritten: new Date(),
+          doctorNotes:
+            "Take medications after meals. Monitor blood sugar daily. Return if symptoms worsen.",
+          medications: [
+            {
+              name: "Metformin",
+              dosage: "500mg",
+              frequency: "Twice daily",
+              duration: "30 days",
+            },
+            {
+              name: "Amlodipine",
+              dosage: "5mg",
+              frequency: "Once daily",
+              duration: "30 days",
+            },
+          ],
+        },
+      });
+    }
   }
 
   console.log("Seed completed.");

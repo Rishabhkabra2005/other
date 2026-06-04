@@ -48,12 +48,20 @@ export const appointmentSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const medicationSchema = z.object({
+  name: z.string().min(1, "Medication name is required"),
+  dosage: z.string().min(1, "Dosage is required"),
+  frequency: z.string().min(1, "Frequency is required"),
+  duration: z.string().min(1, "Duration is required"),
+});
+
 export const prescriptionSchema = z.object({
-  appointmentId: z.string(),
-  patientId: z.string(),
-  diagnosis: z.string().min(2),
-  medications: z.string().min(2),
-  instructions: z.string().optional(),
+  appointmentId: z.string().min(1),
+  patientId: z.string().min(1),
+  doctorId: z.string().min(1),
+  medications: z.array(medicationSchema).min(1, "Add at least one medication"),
+  doctorNotes: z.string().optional(),
+  markCompleted: z.boolean().optional(),
 });
 
 export const slotSchema = z.object({

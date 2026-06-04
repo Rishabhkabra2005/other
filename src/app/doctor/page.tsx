@@ -6,6 +6,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { WritePrescriptionForm } from "@/components/doctor/WritePrescriptionForm";
 import { formatDate } from "@/lib/utils";
 
 interface Appointment {
@@ -23,6 +24,7 @@ interface Appointment {
 }
 
 interface DoctorProfile {
+  id: string;
   consultationFee: number;
   fullName: string;
 }
@@ -32,10 +34,14 @@ export default function DoctorDashboard() {
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [fee, setFee] = useState("");
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
-  const [rx, setRx] = useState({ diagnosis: "", medications: "", instructions: "" });
+
+  async function loadAppointments() {
+    const updated = await fetch("/api/appointments").then((r) => r.json());
+    setAppointments(updated);
+  }
 
   useEffect(() => {
-    fetch("/api/appointments").then((r) => r.json()).then(setAppointments);
+    loadAppointments();
     fetch("/api/doctors/profile")
       .then((r) => r.json())
       .then((p: DoctorProfile) => {
@@ -51,24 +57,6 @@ export default function DoctorDashboard() {
       body: JSON.stringify({ consultationFee: Number(fee) }),
     });
     alert("Consultation fee updated.");
-  }
-
-  async function submitPrescription() {
-    if (!selectedAppt) return;
-    await fetch("/api/prescriptions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        appointmentId: selectedAppt.id,
-        patientId: selectedAppt.patient.id,
-        ...rx,
-      }),
-    });
-    setRx({ diagnosis: "", medications: "", instructions: "" });
-    setSelectedAppt(null);
-    const updated = await fetch("/api/appointments").then((r) => r.json());
-    setAppointments(updated);
-    alert("Prescription saved and appointment marked completed.");
   }
 
   const upcoming = appointments.filter(
@@ -122,6 +110,7 @@ export default function DoctorDashboard() {
                   <Button
                     variant="secondary"
                     onClick={() => setSelectedAppt(a)}
+                    disabled={!profile}
                   >
                     Write Prescription
                   </Button>
@@ -132,40 +121,17 @@ export default function DoctorDashboard() {
         </CardContent>
       </Card>
 
-      {selectedAppt && (
-        <Card>
-          <CardContent className="space-y-4">
-            <CardTitle>
-              Digital Prescription — {selectedAppt.patient.fullName}
-            </CardTitle>
-            <div className="bg-slate-50 p-4 rounded-lg border-2 border-slate-200 text-base space-y-2">
-              <p><strong>Age:</strong> {selectedAppt.patient.age}</p>
-              <p><strong>Allergies:</strong> {selectedAppt.patient.allergies || "None recorded"}</p>
-              <p><strong>Conditions:</strong> {selectedAppt.patient.existingDiseases || "None recorded"}</p>
-            </div>
-            <Input
-              label="Diagnosis"
-              value={rx.diagnosis}
-              onChange={(e) => setRx({ ...rx, diagnosis: e.target.value })}
-            />
-            <Input
-              label="Medications"
-              value={rx.medications}
-              onChange={(e) => setRx({ ...rx, medications: e.target.value })}
-            />
-            <Input
-              label="Instructions"
-              value={rx.instructions}
-              onChange={(e) => setRx({ ...rx, instructions: e.target.value })}
-            />
-            <div className="flex gap-3">
-              <Button onClick={submitPrescription}>Save Prescription</Button>
-              <Button variant="secondary" onClick={() => setSelectedAppt(null)}>
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {selectedAppt && profile && (
+        <WritePrescriptionForm
+          appointmentId={selectedAppt.id}
+          patient={selectedAppt.patient}
+          doctorId={profile.id}
+          onSuccess={() => {
+            setSelectedAppt(null);
+            loadAppointments();
+          }}
+          onCancel={() => setSelectedAppt(null)}
+        />
       )}
     </div>
   );

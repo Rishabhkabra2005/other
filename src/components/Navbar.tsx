@@ -26,6 +26,7 @@ export function Navbar() {
           { href: "/patient", label: "Dashboard" },
           { href: "/patient/doctors", label: "Find Doctors" },
           { href: "/patient/appointments", label: "Appointments" },
+          { href: "/patient/prescriptions", label: "Prescriptions" },
         ]
       : role === "DOCTOR"
         ? [
