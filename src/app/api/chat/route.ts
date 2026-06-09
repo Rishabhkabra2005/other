@@ -1198,9 +1198,13 @@ ${normalizeMessage(latestMessage)}
     }
 
     const academicNlpManager = await initializeAcademicNlpManager();
-    const nlpResult = (await academicNlpManager.process("en", latestMessage)) as any;
-    const nlpIntent = nlpResult.intent || "None";
-    const nlpScore = typeof nlpResult.score === "number" ? nlpResult.score : 0;
+    const nlpResult = (await academicNlpManager.process("en", latestMessage)) as Record<string, unknown>;
+    // Safe lookup by extracting properties as unknown first
+    const rawIntent = (nlpResult as Record<string, unknown>)['intent'];
+    const rawScore = (nlpResult as Record<string, unknown>)['score'];
+
+    const nlpIntent = typeof rawIntent === 'string' ? rawIntent : "None";
+    const nlpScore = typeof rawScore === 'number' ? rawScore : 0;
 
     if (
       nlpScore >= 0.7 &&
