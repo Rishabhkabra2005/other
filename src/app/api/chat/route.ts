@@ -1198,7 +1198,7 @@ ${normalizeMessage(latestMessage)}
     }
 
     const academicNlpManager = await initializeAcademicNlpManager();
-    const nlpResult = await academicNlpManager.process("en", latestMessage);
+    const nlpResult = (await academicNlpManager.process("en", latestMessage)) as any;
     const nlpIntent = nlpResult.intent || "None";
     const nlpScore = typeof nlpResult.score === "number" ? nlpResult.score : 0;
 
