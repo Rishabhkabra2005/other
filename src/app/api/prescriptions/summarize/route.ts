@@ -1,9 +1,22 @@
+export const dynamic = "force-dynamic";
+
+import { NextResponse } from "next/server";
 import { requireAuth, jsonError, jsonSuccess } from "@/lib/api-auth";
 import { prescriptionSummarizeSchema } from "@/lib/validations";
 
 const SYSTEM_PROMPT = `You are an empathetic, friendly family health assistant. Translate the provided medical prescription into simple, everyday, human language for the patient. Explain what each medicine generally does in friendly terms, lay out the schedule clearly, and break down the doctor's instructions into practical, comforting bullet points. Avoid complex medical jargon. Speak directly to the patient.`;
 
 const GEMINI_MODEL = "gemini-2.5-flash";
+
+type GeminiGenerateResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+  }>;
+};
 
 function buildUserMessage(
   medications: { name: string; dosage: string; frequency: string; duration: string }[],
@@ -76,18 +89,29 @@ export async function POST(request: Request) {
       return jsonError("Unable to generate summary right now. Please try again later.", 502);
     }
 
-    const data = (await geminiRes.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-    };
+    const data = (await geminiRes.json()) as GeminiGenerateResponse;
 
-    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    let aiText = "";
+    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      aiText = data.candidates[0].content.parts[0].text;
+    }
+
+    const summary = aiText.trim();
     if (!summary) {
       return jsonError("No summary was returned. Please try again.", 502);
     }
 
     return jsonSuccess({ summary });
-  } catch (e) {
-    console.error("Prescription summarize error:", e);
-    return jsonError("Unable to generate summary right now. Please try again later.", 500);
+  } catch (error) {
+    console.error(
+      "🔴 PRESCRIPTION SUMMARIZE API CRASHED:",
+      error instanceof Error ? error.message : error
+    );
+    return NextResponse.json(
+      {
+        error: `System Error: ${error instanceof Error ? error.message : "Request failed"}`,
+      },
+      { status: 500 }
+    );
   }
 }

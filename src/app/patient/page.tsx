@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Calendar, FileText, Search, Users } from "lucide-react";
+import { Calendar, FileText, FileUp, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { PrescriptionUploadModal } from "@/components/patient/PrescriptionUploadModal";
 import { formatDate } from "@/lib/utils";
 
 interface Profile {
@@ -24,6 +25,7 @@ interface Appointment {
 export default function PatientDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/patients/profile").then((r) => r.json()).then(setProfile);
@@ -36,10 +38,25 @@ export default function PatientDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1>Welcome{profile ? `, ${profile.fullName}` : ""}</h1>
-        <p className="text-lg text-slate-700 mt-2">Manage your health appointments and family profiles.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1>Welcome{profile ? `, ${profile.fullName}` : ""}</h1>
+          <p className="text-lg text-slate-700 mt-2">Manage your health appointments and family profiles.</p>
+        </div>
+        <Button
+          type="button"
+          className="bg-teal-600 hover:bg-teal-700 text-white shrink-0"
+          onClick={() => setIsUploadModalOpen(true)}
+        >
+          <FileUp className="h-5 w-5" aria-hidden />
+          Upload External Prescription (AI Scan)
+        </Button>
       </div>
+
+      <PrescriptionUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+      />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/patient/doctors">

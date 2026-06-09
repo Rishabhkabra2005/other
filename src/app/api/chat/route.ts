@@ -48,6 +48,7 @@ export async function POST(req: Request) {
   // ===========================================================================
   // Typo map & constants
   // ===========================================================================
+  console.log("DEBUG: My API Key is ->", process.env.GEMINI_API_KEY ? "FOUND ✅" : "MISSING ❌");
   const TYPO_MAP: Record<string, string> = {
     frasctreu: "fracture",
     frature: "fracture",
