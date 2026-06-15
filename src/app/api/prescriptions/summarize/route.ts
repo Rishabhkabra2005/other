@@ -4,16 +4,15 @@ import { NextResponse } from "next/server";
 import { requireAuth, jsonError, jsonSuccess } from "@/lib/api-auth";
 import { prescriptionSummarizeSchema } from "@/lib/validations";
 
+const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
 const SYSTEM_PROMPT = `You are an empathetic, friendly family health assistant. Translate the provided medical prescription into simple, everyday, human language for the patient. Explain what each medicine generally does in friendly terms, lay out the schedule clearly, and break down the doctor's instructions into practical, comforting bullet points. Avoid complex medical jargon. Speak directly to the patient.`;
 
-const GEMINI_MODEL = "gemini-2.5-flash";
-
-type GeminiGenerateResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
+type GroqChatResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string;
     };
   }>;
 };
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
   const { error } = await requireAuth(["PATIENT"]);
   if (error) return error;
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return jsonError("AI summary is not configured. Please contact support.", 503);
   }
@@ -60,40 +59,34 @@ export async function POST(request: Request) {
   const { medications, doctorNotes } = parsed.data;
 
   try {
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: buildUserMessage(medications, doctorNotes) }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 1200,
-          },
-        }),
-      }
-    );
+    const groqRes = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserMessage(medications, doctorNotes) },
+        ],
+        temperature: 0.6,
+        max_tokens: 1200,
+      }),
+    });
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text();
-      console.error("Gemini API error:", geminiRes.status, errBody);
+    if (!groqRes.ok) {
+      const errBody = await groqRes.text();
+      console.error("Groq API error:", groqRes.status, errBody);
       return jsonError("Unable to generate summary right now. Please try again later.", 502);
     }
 
-    const data = (await geminiRes.json()) as GeminiGenerateResponse;
+    const data = (await groqRes.json()) as GroqChatResponse;
 
     let aiText = "";
-    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      aiText = data.candidates[0].content.parts[0].text;
+    if (data?.choices?.[0]?.message?.content) {
+      aiText = data.choices[0].message.content;
     }
 
     const summary = aiText.trim();

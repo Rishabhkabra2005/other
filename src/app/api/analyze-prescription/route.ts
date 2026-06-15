@@ -3,20 +3,19 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireAuth, jsonError, jsonSuccess } from "@/lib/api-auth";
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const ACCEPTED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/jpg"]);
 
 const OCR_PROMPT =
-  "Read this prescription image carefully, perform OCR to extract all medicine names, dosages, durations, and instructions, and summarize them into simple terms a layperson can understand.";
+  "Perform OCR on this prescription image carefully. Extract all medicine names, dosages, durations, and doctor instructions. Then summarize the extracted medical data into simple, plain terms that a layperson can easily understand. Use clear headings and bullet points.";
 
-type GeminiGenerateResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
+type GroqChatResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string;
     };
   }>;
 };
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
   const { error } = await requireAuth(["PATIENT"]);
   if (error) return error;
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return jsonError("AI prescription scan is not configured. Please contact support.", 503);
   }
@@ -54,46 +53,46 @@ export async function POST(request: Request) {
 
   try {
     const buffer = await fileEntry.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
+    const base64Data = Buffer.from(buffer).toString("base64");
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: OCR_PROMPT },
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64,
-                  },
+    const groqRes = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: OCR_PROMPT },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Data}`,
                 },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 2048,
+              },
+            ],
           },
-        }),
-      }
-    );
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+      }),
+    });
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text();
-      console.error("Gemini Vision API error:", geminiRes.status, errBody);
+    if (!groqRes.ok) {
+      const errBody = await groqRes.text();
+      console.error("Groq Vision API error:", groqRes.status, errBody);
       return jsonError("Unable to analyze the prescription right now. Please try again later.", 502);
     }
 
-    const data = (await geminiRes.json()) as GeminiGenerateResponse;
+    const data = (await groqRes.json()) as GroqChatResponse;
 
     let aiText = "";
-    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      aiText = data.candidates[0].content.parts[0].text;
+    if (data?.choices?.[0]?.message?.content) {
+      aiText = data.choices[0].message.content;
     }
 
     const summary = aiText.trim();
