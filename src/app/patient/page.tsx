@@ -6,6 +6,7 @@ import { Calendar, FileText, FileUp, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { HandwrittenNotesCard } from "@/components/patient/HandwrittenNotesCard";
 import { PrescriptionUploadModal } from "@/components/patient/PrescriptionUploadModal";
 import { formatDate } from "@/lib/utils";
 
@@ -57,6 +58,8 @@ export default function PatientDashboard() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
       />
+
+      <HandwrittenNotesCard />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/patient/doctors">
