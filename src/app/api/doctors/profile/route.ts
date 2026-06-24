@@ -17,6 +17,7 @@ export async function GET() {
 
   return jsonSuccess({
     ...doctor,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     effectiveVerificationStatus: getEffectiveVerificationStatus(doctor as any),
   });
 }
