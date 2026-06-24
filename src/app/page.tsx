@@ -17,12 +17,19 @@ export default function HomePage() {
           Book on-site, phone, or video consultations with verified doctors.
           Designed for clarity, accessibility, and peace of mind.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-          <Link href="/register">
-            <Button size="lg">Register as Patient</Button>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center items-stretch sm:items-center pt-6 max-w-3xl mx-auto">
+          <Link href="/register" className="w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
+            <Button size="lg" className="w-full">
+              Register as Patient
+            </Button>
           </Link>
-          <Link href="/login">
-            <Button variant="outline" size="lg">
+          <Link href="/register/doctor" className="w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
+            <Button variant="outline" size="lg" className="w-full">
+              Register as Doctor
+            </Button>
+          </Link>
+          <Link href="/login" className="w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
+            <Button variant="secondary" size="lg" className="w-full">
               Sign In
             </Button>
           </Link>

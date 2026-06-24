@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { DoctorVerificationStatus, Role } from "@prisma/client";
 import "next-auth";
 
 declare module "next-auth" {
@@ -6,6 +6,7 @@ declare module "next-auth" {
     role: Role;
     patientId?: string;
     doctorId?: string;
+    doctorVerificationStatus?: DoctorVerificationStatus;
   }
 
   interface Session {
@@ -16,6 +17,8 @@ declare module "next-auth" {
       role: Role;
       patientId?: string;
       doctorId?: string;
+      doctorVerificationStatus?: DoctorVerificationStatus;
+      isDoctorApproved?: boolean;
     };
   }
 }
@@ -26,5 +29,6 @@ declare module "next-auth/jwt" {
     role: Role;
     patientId?: string;
     doctorId?: string;
+    doctorVerificationStatus?: DoctorVerificationStatus;
   }
 }

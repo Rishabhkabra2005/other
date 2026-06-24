@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth, jsonError, jsonSuccess } from "@/lib/api-auth";
+import { getEffectiveVerificationStatus } from "@/lib/doctor-verification";
 
 export async function GET() {
   const { error, session } = await requireAuth(["DOCTOR"]);
@@ -13,7 +14,11 @@ export async function GET() {
     },
   });
   if (!doctor) return jsonError("Doctor not found", 404);
-  return jsonSuccess(doctor);
+
+  return jsonSuccess({
+    ...doctor,
+    effectiveVerificationStatus: getEffectiveVerificationStatus(doctor as any),
+  });
 }
 
 export async function PATCH(request: Request) {

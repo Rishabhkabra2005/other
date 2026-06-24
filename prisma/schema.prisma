@@ -51,6 +51,11 @@ enum Specialization {
   UROLOGY
 }
 
+enum DoctorVerificationStatus {
+  PENDING
+  APPROVED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -114,21 +119,26 @@ model FamilyMember {
 }
 
 model Doctor {
-  id               String           @id @default(cuid())
-  userId           String           @unique
-  fullName         String
-  qualification    String
-  experienceYears  Int
-  specialization   Specialization
-  consultationFee  Int
-  languages        String[]
-  modes            ConsultationMode[]
-  bio              String?
-  verified         Boolean          @default(false)
-  averageRating    Float            @default(0)
-  reviewCount      Int              @default(0)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id                        String                   @id @default(cuid())
+  userId                    String                   @unique
+  fullName                  String
+  qualification             String
+  experienceYears           Int
+  specialization            Specialization
+  consultationFee           Int
+  languages                 String[]
+  modes                     ConsultationMode[]
+  bio                       String?
+  verified                  Boolean                  @default(false)
+  medicalRegistrationNumber String?                  @unique
+  fatherName                String?
+  institute                 String?
+  graduationYear            Int?
+  verificationStatus        DoctorVerificationStatus @default(PENDING)
+  averageRating             Float                    @default(0)
+  reviewCount               Int                      @default(0)
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
 
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   clinics      Clinic[]

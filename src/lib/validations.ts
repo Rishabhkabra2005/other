@@ -92,3 +92,20 @@ export const addDoctorSchema = z.object({
   ),
   consultationFee: z.coerce.number().min(0, "Fee must be zero or greater"),
 });
+
+export const doctorRegisterSchema = z.object({
+  doctor_name: z.string().min(2, "Full name is required"),
+  father_name: z.string().min(2, "Father's name is required"),
+  degree: z.string().min(2, "Degree is required"),
+  institute: z.string().min(2, "Medical institute is required"),
+  graduation_year: z.coerce.number().min(1970).max(new Date().getFullYear()),
+  registration_number: z.string().min(5, "Medical Registration Number is required"),
+});
+
+export const doctorVerifySchema = doctorRegisterSchema.extend({
+  doctorId: z.string().optional(),
+});
+
+export const doctorRegistrationLoginSchema = z.object({
+  registrationNumber: z.string().min(5, "Medical Registration Number is required"),
+});

@@ -50,9 +50,9 @@ export default function AdminDashboard() {
           <h1>Admin Overview</h1>
           <p className="text-lg text-slate-700 mt-2">System analytics and moderation tools.</p>
         </div>
-        <Link href="/admin/verification">
+        <Link href="/admin/doctors">
           <Button variant="outline">
-            {data.users.pendingVerification} Pending Verifications
+            Doctor Ledger · {data.users.pendingVerification} Pending
           </Button>
         </Link>
       </div>
@@ -101,11 +101,8 @@ export default function AdminDashboard() {
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <Link href="/admin/add-doctor">
-          <Button>Add New Doctor</Button>
-        </Link>
-        <Link href="/admin/verification">
-          <Button variant="outline">Doctor Verification Queue</Button>
+        <Link href="/admin/doctors">
+          <Button>Doctor Ledger</Button>
         </Link>
         <Link href="/admin/moderation">
           <Button variant="secondary">Moderation</Button>

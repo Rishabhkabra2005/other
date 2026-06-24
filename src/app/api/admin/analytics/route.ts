@@ -17,8 +17,8 @@ export async function GET() {
   ] = await Promise.all([
     prisma.patient.count(),
     prisma.doctor.count(),
-    prisma.doctor.count({ where: { verified: true } }),
-    prisma.doctor.count({ where: { verified: false } }),
+    prisma.doctor.count({ where: { verificationStatus: "APPROVED" } }),
+    prisma.doctor.count({ where: { verificationStatus: "PENDING" } }),
     prisma.appointment.count(),
     prisma.appointment.count({ where: { status: "COMPLETED" } }),
     prisma.appointment.count({ where: { status: "PENDING" } }),
