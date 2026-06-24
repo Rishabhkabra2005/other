@@ -100,6 +100,8 @@ export const doctorRegisterSchema = z.object({
   institute: z.string().min(2, "Medical institute is required"),
   graduation_year: z.coerce.number().min(1970).max(new Date().getFullYear()),
   registration_number: z.string().min(5, "Medical Registration Number is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(10, "Valid phone number is required"),
 });
 
 export const doctorVerifySchema = doctorRegisterSchema.extend({

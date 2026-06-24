@@ -5,11 +5,14 @@ import { ConsultationMode } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonSuccess } from "@/lib/api-auth";
 import { doctorRegisterSchema } from "@/lib/validations";
-import {
-  buildApprovedDoctorUpdate,
-  doctorEmailFromRegistrationNumber,
-  verifyDoctorCredentials,
-} from "@/lib/doctor-verification";
+import { buildApprovedDoctorUpdate, verifyDoctorCredentials } from "@/lib/doctor-verification";
+import { normalizePhone } from "@/lib/twilio";
+
+const REGISTRY_MISMATCH_MESSAGE =
+  "Verification Failed: The provided credentials do not match the official medical registry records. Please verify your data and try again.";
+
+const CONTACT_TAKEN_MESSAGE =
+  "Registration Failed: This email or phone number is already registered on the platform.";
 
 export async function POST(request: Request) {
   try {
@@ -21,18 +24,16 @@ export async function POST(request: Request) {
 
     const data = parsed.data;
     const registrationNumber = data.registration_number.trim().toUpperCase();
+    const email = data.email.trim().toLowerCase();
+    const phone = normalizePhone(data.phone);
 
-    const existingDoctor = await prisma.doctor.findUnique({
-      where: { medicalRegistrationNumber: registrationNumber },
-    });
-    if (existingDoctor) {
-      return jsonError("This Medical Registration Number is already registered.", 409);
-    }
+    const [existingEmail, existingPhone] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.user.findFirst({ where: { phone } }),
+    ]);
 
-    const email = doctorEmailFromRegistrationNumber(registrationNumber);
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return jsonError("An account already exists for this registration number.", 409);
+    if (existingEmail || existingPhone) {
+      return jsonError(CONTACT_TAKEN_MESSAGE, 409);
     }
 
     const verification = verifyDoctorCredentials({
@@ -44,17 +45,30 @@ export async function POST(request: Request) {
       graduation_year: data.graduation_year,
     });
 
+    if (!verification.approved || !verification.registryRecord) {
+      return jsonError(REGISTRY_MISMATCH_MESSAGE, 400);
+    }
+
+    const existingRegistration = await prisma.doctor.findUnique({
+      where: { medicalRegistrationNumber: registrationNumber },
+    });
+    if (existingRegistration) {
+      return jsonError(
+        "Registration Failed: This Medical Registration Number is already registered on the platform.",
+        409
+      );
+    }
+
+    const approvedUpdate = buildApprovedDoctorUpdate(verification.registryRecord);
     const passwordHash = await bcrypt.hash(
       `doctor-${registrationNumber}-${Date.now()}`,
       12
     );
 
-    const currentYear = new Date().getFullYear();
-    const experienceYears = Math.max(1, currentYear - Number(data.graduation_year));
-
     const user = await prisma.user.create({
       data: {
         email,
+        phone,
         passwordHash,
         role: "DOCTOR",
         otpVerified: true,
@@ -66,8 +80,6 @@ export async function POST(request: Request) {
             graduationYear: Number(data.graduation_year),
             medicalRegistrationNumber: registrationNumber,
             qualification: data.degree.trim(),
-            experienceYears,
-            specialization: "GENERAL_PHYSICIAN",
             consultationFee: 500,
             languages: ["English", "Hindi"],
             modes: [
@@ -75,9 +87,8 @@ export async function POST(request: Request) {
               ConsultationMode.PHONE,
               ConsultationMode.VIDEO,
             ],
-            verificationStatus: "PENDING",
-            verified: false,
             bio: `${data.doctor_name.trim()} — council registration ${registrationNumber}`,
+            ...approvedUpdate,
           },
         },
       },
@@ -88,35 +99,14 @@ export async function POST(request: Request) {
       return jsonError("Doctor profile could not be created.", 500);
     }
 
-    if (verification.approved && verification.registryRecord) {
-      const approvedUpdate = buildApprovedDoctorUpdate(verification.registryRecord);
-      const approvedDoctor = await prisma.doctor.update({
-        where: { id: user.doctor.id },
-        data: approvedUpdate,
-      });
-
-      return jsonSuccess(
-        {
-          message:
-            "Registration successful. All credentials matched the medical registry and your account is approved.",
-          doctorId: approvedDoctor.id,
-          registrationNumber,
-          verificationStatus: approvedDoctor.verificationStatus,
-          status: "APPROVED",
-        },
-        201
-      );
-    }
-
     return jsonSuccess(
       {
         message:
-          "Registration received. Credential verification is pending — one or more details did not match the medical registry.",
+          "Registration successful. All credentials matched the medical registry and your account is approved.",
         doctorId: user.doctor.id,
         registrationNumber,
-        verificationStatus: "PENDING",
-        status: "PENDING",
-        errors: verification.errors,
+        verificationStatus: user.doctor.verificationStatus,
+        status: "APPROVED",
       },
       201
     );

@@ -19,6 +19,8 @@ export default function DoctorRegisterPage() {
     institute: "",
     graduation_year: "",
     registration_number: "",
+    email: "",
+    phone: "",
   });
 
   function update(field: string, value: string) {
@@ -52,12 +54,7 @@ export default function DoctorRegisterPage() {
       router.push(
         `/login/doctor?registered=${encodeURIComponent(form.registration_number.trim().toUpperCase())}&approved=1`
       );
-      return;
     }
-
-    router.push(
-      `/login/doctor?registered=${encodeURIComponent(form.registration_number.trim().toUpperCase())}&pending=1`
-    );
   }
 
   return (
@@ -117,6 +114,20 @@ export default function DoctorRegisterPage() {
                 placeholder="e.g. NMC-2026-001"
                 value={form.registration_number}
                 onChange={(e) => update("registration_number", e.target.value.toUpperCase())}
+                required
+              />
+              <Input
+                label="Email *"
+                type="email"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+                required
+              />
+              <Input
+                label="Phone Number *"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => update("phone", e.target.value)}
                 required
               />
             </div>
