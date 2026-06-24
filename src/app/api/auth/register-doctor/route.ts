@@ -79,7 +79,6 @@ export async function POST(request: Request) {
             institute: data.institute.trim(),
             graduationYear: Number(data.graduation_year),
             medicalRegistrationNumber: registrationNumber,
-            qualification: data.degree.trim(),
             consultationFee: 500,
             languages: ["English", "Hindi"],
             modes: [
@@ -89,6 +88,7 @@ export async function POST(request: Request) {
             ],
             bio: `${data.doctor_name.trim()} — council registration ${registrationNumber}`,
             ...approvedUpdate,
+            qualification: data.degree.trim(),
           },
         },
       },
