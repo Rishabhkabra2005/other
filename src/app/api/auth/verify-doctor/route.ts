@@ -59,8 +59,8 @@ export async function POST(request: Request) {
         institute: data.institute.trim(),
         graduationYear: Number(data.graduation_year),
         medicalRegistrationNumber: registrationNumber,
-        qualification: data.degree.trim(),
         ...approvedUpdate,
+        qualification: data.degree.trim(),
       },
     });
 
@@ -84,8 +84,8 @@ export async function POST(request: Request) {
         fatherName: data.father_name.trim(),
         institute: data.institute.trim(),
         graduationYear: Number(data.graduation_year),
-        qualification: data.degree.trim(),
         ...approvedUpdate,
+        qualification: data.degree.trim(),
       },
     });
 
