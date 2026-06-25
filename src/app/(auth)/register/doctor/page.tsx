@@ -11,34 +11,70 @@ import { Card, CardContent, CardTitle } from "@/components/ui/Card";
 export default function DoctorRegisterPage() {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [form, setForm] = useState({
-    doctor_name: "",
-    father_name: "",
-    degree: "",
-    institute: "",
-    graduation_year: "",
-    registration_number: "",
+    fullName: "",
     email: "",
     phone: "",
+    registrationNumber: "",
+    otp: "",
   });
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  async function handleSendOtp() {
+    setErrors({});
+    setInfo("");
+
+    if (!form.phone.trim()) {
+      setErrors({ phone: "Enter your phone number before requesting an OTP." });
+      return;
+    }
+
+    setSendingOtp(true);
+    const res = await fetch("/api/auth/send-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: form.phone }),
+    });
+    const data = await res.json();
+    setSendingOtp(false);
+
+    if (!res.ok) {
+      setErrors({ general: data.error || "Failed to send OTP" });
+      return;
+    }
+
+    setOtpSent(true);
+    setInfo(data.message || "Verification OTP sent to your phone.");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
+    setInfo("");
+
+    if (!otpSent) {
+      setErrors({ general: "Please send and enter your phone verification OTP first." });
+      return;
+    }
+
     setLoading(true);
 
     const res = await fetch("/api/auth/register-doctor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
-        graduation_year: Number(form.graduation_year),
-        registration_number: form.registration_number.trim().toUpperCase(),
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        registrationNumber: form.registrationNumber.trim().toUpperCase(),
+        otp: form.otp.trim(),
       }),
     });
 
@@ -50,15 +86,13 @@ export default function DoctorRegisterPage() {
       return;
     }
 
-    if (data.status === "APPROVED") {
-      router.push(
-        `/login/doctor?registered=${encodeURIComponent(form.registration_number.trim().toUpperCase())}&approved=1`
-      );
-    }
+    router.push(
+      `/login/doctor?registered=${encodeURIComponent(form.registrationNumber.trim().toUpperCase())}&approved=1`
+    );
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-xl mx-auto">
       <Card className="border-2 border-teal-100">
         <CardContent className="space-y-6">
           <div className="flex items-start gap-3">
@@ -66,71 +100,70 @@ export default function DoctorRegisterPage() {
             <div>
               <CardTitle className="text-2xl">Doctor Registration</CardTitle>
               <p className="text-base text-slate-700 mt-2">
-                Register with your Medical Registration Number. We automatically verify your
-                credentials against the National Medical Council registry.
+                Enter your contact details and Medical Registration Number. We verify your phone via
+                OTP, then match your name against the National Medical Council registry.
               </p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid md:grid-cols-2 gap-5">
-              <Input
-                label="Full Name *"
-                value={form.doctor_name}
-                onChange={(e) => update("doctor_name", e.target.value)}
-                required
-              />
-              <Input
-                label="Father's Name *"
-                value={form.father_name}
-                onChange={(e) => update("father_name", e.target.value)}
-                required
-              />
-              <Input
-                label="Degree *"
-                placeholder="e.g. MBBS, MD"
-                value={form.degree}
-                onChange={(e) => update("degree", e.target.value)}
-                required
-              />
-              <Input
-                label="Medical Institute *"
-                placeholder="e.g. AIIMS Delhi"
-                value={form.institute}
-                onChange={(e) => update("institute", e.target.value)}
-                required
-              />
-              <Input
-                label="Graduation Year *"
-                type="number"
-                min={1970}
-                max={new Date().getFullYear()}
-                value={form.graduation_year}
-                onChange={(e) => update("graduation_year", e.target.value)}
-                required
-              />
-              <Input
-                label="Medical Registration Number *"
-                placeholder="e.g. NMC-2026-001"
-                value={form.registration_number}
-                onChange={(e) => update("registration_number", e.target.value.toUpperCase())}
-                required
-              />
-              <Input
-                label="Email *"
-                type="email"
-                value={form.email}
-                onChange={(e) => update("email", e.target.value)}
-                required
-              />
-              <Input
-                label="Phone Number *"
-                type="tel"
-                value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
-                required
-              />
+            <Input
+              label="Full Name *"
+              placeholder="e.g. Dr. Priya Verma"
+              value={form.fullName}
+              onChange={(e) => update("fullName", e.target.value)}
+              required
+            />
+            <Input
+              label="Email ID *"
+              type="email"
+              value={form.email}
+              onChange={(e) => update("email", e.target.value)}
+              required
+            />
+            <Input
+              label="Phone Number *"
+              type="tel"
+              value={form.phone}
+              onChange={(e) => update("phone", e.target.value)}
+              required
+            />
+            <Input
+              label="Medical Registration Number *"
+              placeholder="e.g. NMC-2026-001"
+              value={form.registrationNumber}
+              onChange={(e) => update("registrationNumber", e.target.value.toUpperCase())}
+              required
+            />
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p className="text-sm font-semibold text-slate-800">Phone verification (OTP)</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={sendingOtp || !form.phone.trim()}
+                onClick={handleSendOtp}
+              >
+                {sendingOtp ? "Sending OTP…" : "Send Verification OTP"}
+              </Button>
+              {otpSent && (
+                <Input
+                  label="Enter OTP Code *"
+                  value={form.otp}
+                  onChange={(e) => update("otp", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="6-digit code"
+                  required
+                  maxLength={6}
+                />
+              )}
             </div>
+
+            {info && (
+              <p className="text-sm text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
+                {info}
+              </p>
+            )}
 
             {errors.general && (
               <p
@@ -141,8 +174,8 @@ export default function DoctorRegisterPage() {
               </p>
             )}
 
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Verifying credentials…" : "Register & Verify with Medical Council"}
+            <Button type="submit" className="w-full" size="lg" disabled={loading || !otpSent}>
+              {loading ? "Verifying & registering…" : "Complete Registration"}
             </Button>
           </form>
 

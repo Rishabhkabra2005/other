@@ -5,6 +5,52 @@ import {
   type MedicalRegistryRecord,
 } from "@/lib/mockMedicalRegistry";
 
+export function normalizeDoctorName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/^dr\.?\s*/i, "")
+    .replace(/\s+/g, " ");
+}
+
+export interface DoctorRegistryIdentityResult {
+  approved: boolean;
+  registryRecord?: MedicalRegistryRecord;
+  error?: string;
+}
+
+export function verifyDoctorRegistryIdentity(
+  registrationNumber: string,
+  fullName: string
+): DoctorRegistryIdentityResult {
+  const normalizedRegNumber = registrationNumber.trim().toUpperCase();
+  if (!normalizedRegNumber) {
+    return {
+      approved: false,
+      error: "Medical Registration Number is required.",
+    };
+  }
+
+  const registryRecord = findRegistryByRegistrationNumber(normalizedRegNumber);
+  if (!registryRecord) {
+    return {
+      approved: false,
+      error:
+        "Verification Failed: The provided credentials do not match the official medical registry records. Please verify your data and try again.",
+    };
+  }
+
+  if (normalizeDoctorName(fullName) !== normalizeDoctorName(registryRecord.doctor_name)) {
+    return {
+      approved: false,
+      error:
+        "Verification Failed: The provided credentials do not match the official medical registry records. Please verify your data and try again.",
+    };
+  }
+
+  return { approved: true, registryRecord };
+}
+
 export interface DoctorVerificationInput {
   registration_number: string;
   doctor_name: string;

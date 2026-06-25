@@ -5,8 +5,8 @@ import Link from "next/link";
 import { Card, CardContent, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { WritePrescriptionForm } from "@/components/doctor/WritePrescriptionForm";
+import { DoctorProfileEditor } from "@/components/doctor/DoctorProfileEditor";
 import { formatDate } from "@/lib/utils";
 
 interface Appointment {
@@ -32,7 +32,6 @@ interface DoctorProfile {
 export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
-  const [fee, setFee] = useState("");
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
 
   async function loadAppointments() {
@@ -46,18 +45,8 @@ export default function DoctorDashboard() {
       .then((r) => r.json())
       .then((p: DoctorProfile) => {
         setProfile(p);
-        setFee(String(p.consultationFee));
       });
   }, []);
-
-  async function updateFee() {
-    await fetch("/api/doctors/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consultationFee: Number(fee) }),
-    });
-    alert("Consultation fee updated.");
-  }
 
   const upcoming = appointments.filter(
     (a) => a.status === "CONFIRMED" || a.status === "PENDING"
@@ -72,25 +61,16 @@ export default function DoctorDashboard() {
         </p>
       </div>
 
+      <DoctorProfileEditor />
+
       <Card>
-        <CardContent className="flex flex-wrap gap-4 items-end">
-          <Input
-            label="Consultation Fee (₹)"
-            type="number"
-            value={fee}
-            onChange={(e) => setFee(e.target.value)}
-            className="max-w-xs"
-          />
-          <Button onClick={updateFee}>Update Fee</Button>
+        <CardContent className="flex flex-wrap gap-4 items-center justify-between">
+          <CardTitle className="mb-0">Upcoming Schedule</CardTitle>
           <Link href="/doctor/slots">
             <Button variant="outline">Manage Time Slots</Button>
           </Link>
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <CardTitle className="mb-4">Upcoming Schedule</CardTitle>
+        <CardContent className="pt-0">
           {upcoming.length === 0 ? (
             <p className="text-base text-slate-700">No upcoming appointments.</p>
           ) : (

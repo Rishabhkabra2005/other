@@ -5,14 +5,24 @@ import { ConsultationMode } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonSuccess } from "@/lib/api-auth";
 import { doctorRegisterSchema } from "@/lib/validations";
-import { buildApprovedDoctorUpdate, verifyDoctorCredentials } from "@/lib/doctor-verification";
+import {
+  buildApprovedDoctorUpdate,
+  verifyDoctorRegistryIdentity,
+} from "@/lib/doctor-verification";
+import { verifyOtpForPhone } from "@/lib/otp-verification";
 import { normalizePhone } from "@/lib/twilio";
 
 const REGISTRY_MISMATCH_MESSAGE =
   "Verification Failed: The provided credentials do not match the official medical registry records. Please verify your data and try again.";
 
-const CONTACT_TAKEN_MESSAGE =
-  "Registration Failed: This email or phone number is already registered on the platform.";
+function buildInternalUserEmail(registrationNumber: string): string {
+  const slug = registrationNumber
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+  return `doctor.${slug}.${Date.now()}@careconnect.health`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -23,30 +33,18 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
-    const registrationNumber = data.registration_number.trim().toUpperCase();
-    const email = data.email.trim().toLowerCase();
+    const registrationNumber = data.registrationNumber.trim().toUpperCase();
+    const contactEmail = data.email.trim().toLowerCase();
     const phone = normalizePhone(data.phone);
 
-    const [existingEmail, existingPhone] = await Promise.all([
-      prisma.user.findUnique({ where: { email } }),
-      prisma.user.findFirst({ where: { phone } }),
-    ]);
-
-    if (existingEmail || existingPhone) {
-      return jsonError(CONTACT_TAKEN_MESSAGE, 409);
+    const otpValid = await verifyOtpForPhone(phone, data.otp);
+    if (!otpValid) {
+      return jsonError("Invalid or expired OTP. Please request a new verification code.", 400);
     }
 
-    const verification = verifyDoctorCredentials({
-      registration_number: registrationNumber,
-      doctor_name: data.doctor_name,
-      father_name: data.father_name,
-      degree: data.degree,
-      institute: data.institute,
-      graduation_year: data.graduation_year,
-    });
-
-    if (!verification.approved || !verification.registryRecord) {
-      return jsonError(REGISTRY_MISMATCH_MESSAGE, 400);
+    const identity = verifyDoctorRegistryIdentity(registrationNumber, data.fullName);
+    if (!identity.approved || !identity.registryRecord) {
+      return jsonError(identity.error || REGISTRY_MISMATCH_MESSAGE, 400);
     }
 
     const existingRegistration = await prisma.doctor.findUnique({
@@ -59,7 +57,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const approvedUpdate = buildApprovedDoctorUpdate(verification.registryRecord);
+    const registry = identity.registryRecord;
+    const approvedUpdate = buildApprovedDoctorUpdate(registry);
     const passwordHash = await bcrypt.hash(
       `doctor-${registrationNumber}-${Date.now()}`,
       12
@@ -67,17 +66,17 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: buildInternalUserEmail(registrationNumber),
         phone,
         passwordHash,
         role: "DOCTOR",
         otpVerified: true,
         doctor: {
           create: {
-            fullName: data.doctor_name.trim(),
-            fatherName: data.father_name.trim(),
-            institute: data.institute.trim(),
-            graduationYear: Number(data.graduation_year),
+            fullName: registry.doctor_name,
+            fatherName: registry.father_name,
+            institute: registry.institute,
+            graduationYear: registry.graduation_year,
             medicalRegistrationNumber: registrationNumber,
             consultationFee: 500,
             languages: ["English", "Hindi"],
@@ -86,9 +85,10 @@ export async function POST(request: Request) {
               ConsultationMode.PHONE,
               ConsultationMode.VIDEO,
             ],
-            bio: `${data.doctor_name.trim()} — council registration ${registrationNumber}`,
+            clinicLocations: [],
+            careerAchievements: [],
+            bio: `Contact: ${contactEmail} · ${registry.doctor_name} — council registration ${registrationNumber}`,
             ...approvedUpdate,
-            qualification: data.degree.trim(),
           },
         },
       },
@@ -102,11 +102,20 @@ export async function POST(request: Request) {
     return jsonSuccess(
       {
         message:
-          "Registration successful. All credentials matched the medical registry and your account is approved.",
+          "Registration successful. OTP verified and your identity matched the medical registry. Your account is approved.",
         doctorId: user.doctor.id,
         registrationNumber,
         verificationStatus: user.doctor.verificationStatus,
         status: "APPROVED",
+        profile: {
+          fullName: registry.doctor_name,
+          fatherName: registry.father_name,
+          degree: registry.degree,
+          institute: registry.institute,
+          graduationYear: registry.graduation_year,
+          specialization: registry.specialization,
+          contactEmail,
+        },
       },
       201
     );

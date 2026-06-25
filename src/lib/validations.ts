@@ -94,18 +94,32 @@ export const addDoctorSchema = z.object({
 });
 
 export const doctorRegisterSchema = z.object({
+  fullName: z.string().min(2, "Full name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(10, "Valid phone number is required"),
+  registrationNumber: z.string().min(5, "Medical Registration Number is required"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+});
+
+export const doctorFullVerifySchema = z.object({
   doctor_name: z.string().min(2, "Full name is required"),
   father_name: z.string().min(2, "Father's name is required"),
   degree: z.string().min(2, "Degree is required"),
   institute: z.string().min(2, "Medical institute is required"),
   graduation_year: z.coerce.number().min(1970).max(new Date().getFullYear()),
   registration_number: z.string().min(5, "Medical Registration Number is required"),
-  email: z.string().email("Valid email is required"),
-  phone: z.string().min(10, "Valid phone number is required"),
+  doctorId: z.string().optional(),
 });
 
-export const doctorVerifySchema = doctorRegisterSchema.extend({
-  doctorId: z.string().optional(),
+export const doctorVerifySchema = doctorFullVerifySchema;
+
+export const doctorProfileUpdateSchema = z.object({
+  consultationFee: z.coerce.number().min(0).optional(),
+  bio: z.string().optional(),
+  languages: z.array(z.string()).optional(),
+  clinicLocations: z.array(z.string()).optional(),
+  availabilityHours: z.string().optional(),
+  careerAchievements: z.array(z.string()).optional(),
 });
 
 export const doctorRegistrationLoginSchema = z.object({

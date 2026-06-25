@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth, jsonError, jsonSuccess } from "@/lib/api-auth";
+import { doctorProfileUpdateSchema } from "@/lib/validations";
 import { getEffectiveVerificationStatus } from "@/lib/doctor-verification";
 
 export async function GET() {
@@ -17,8 +18,7 @@ export async function GET() {
 
   return jsonSuccess({
     ...doctor,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    effectiveVerificationStatus: getEffectiveVerificationStatus(doctor as any),
+    effectiveVerificationStatus: getEffectiveVerificationStatus(doctor),
   });
 }
 
@@ -26,14 +26,33 @@ export async function PATCH(request: Request) {
   const { error, session } = await requireAuth(["DOCTOR"]);
   if (error) return error;
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("Invalid request body");
+  }
+
+  const parsed = doctorProfileUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return jsonError(parsed.error.issues[0]?.message || "Invalid profile data");
+  }
+
+  const data = parsed.data;
+
   const doctor = await prisma.doctor.update({
     where: { userId: session!.user.id },
     data: {
-      consultationFee: body.consultationFee,
-      bio: body.bio,
-      languages: body.languages,
+      ...(data.consultationFee !== undefined && { consultationFee: data.consultationFee }),
+      ...(data.bio !== undefined && { bio: data.bio }),
+      ...(data.languages !== undefined && { languages: data.languages }),
+      ...(data.clinicLocations !== undefined && { clinicLocations: data.clinicLocations }),
+      ...(data.availabilityHours !== undefined && { availabilityHours: data.availabilityHours }),
+      ...(data.careerAchievements !== undefined && {
+        careerAchievements: data.careerAchievements,
+      }),
     },
   });
+
   return jsonSuccess(doctor);
 }

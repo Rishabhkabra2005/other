@@ -135,6 +135,9 @@ model Doctor {
   institute                 String?
   graduationYear            Int?
   verificationStatus        DoctorVerificationStatus @default(PENDING)
+  clinicLocations           String[]                 @default([])
+  availabilityHours         String?
+  careerAchievements        String[]                 @default([])
   averageRating             Float                    @default(0)
   reviewCount               Int                      @default(0)
   createdAt                 DateTime                 @default(now())
