@@ -8,7 +8,7 @@ import { doctorRegisterSchema } from "@/lib/validations";
 import { verifyDoctorRegistryIdentity } from "@/lib/doctor-verification";
 import { buildPendingDoctorProfile } from "@/lib/doctor-queue";
 import { verifyOtpForPhone } from "@/lib/otp-verification";
-import { buildDoctorTrackingUrl, sendDoctorVerificationQueuedEmail } from "@/lib/mail";
+import { buildDoctorTrackingUrl, sendTrackingEmail } from "@/lib/mail";
 import { normalizePhone } from "@/lib/twilio";
 
 const REGISTRY_MISMATCH_MESSAGE =
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     const trackingUrl = buildDoctorTrackingUrl(user.doctor.id);
-    const emailSent = await sendDoctorVerificationQueuedEmail(contactEmail, user.doctor.id);
+    const emailSent = await sendTrackingEmail(contactEmail, user.doctor.id);
 
     return jsonSuccess(
       {
