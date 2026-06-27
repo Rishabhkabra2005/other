@@ -33,6 +33,7 @@ export default withAuth(
           "/verify-otp",
           "/login/doctor",
           "/register/doctor",
+          "/register/track-status",
         ];
         if (publicPaths.some((p) => path === p || path.startsWith("/api/auth"))) {
           return true;

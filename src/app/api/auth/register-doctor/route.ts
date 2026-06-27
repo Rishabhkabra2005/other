@@ -5,11 +5,10 @@ import { ConsultationMode } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonSuccess } from "@/lib/api-auth";
 import { doctorRegisterSchema } from "@/lib/validations";
-import {
-  buildApprovedDoctorUpdate,
-  verifyDoctorRegistryIdentity,
-} from "@/lib/doctor-verification";
+import { verifyDoctorRegistryIdentity } from "@/lib/doctor-verification";
+import { buildPendingDoctorProfile } from "@/lib/doctor-queue";
 import { verifyOtpForPhone } from "@/lib/otp-verification";
+import { buildDoctorTrackingUrl, sendDoctorVerificationQueuedEmail } from "@/lib/mail";
 import { normalizePhone } from "@/lib/twilio";
 
 const REGISTRY_MISMATCH_MESSAGE =
@@ -58,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     const registry = identity.registryRecord;
-    const approvedUpdate = buildApprovedDoctorUpdate(registry);
+    const pendingProfile = buildPendingDoctorProfile(registry);
     const passwordHash = await bcrypt.hash(
       `doctor-${registrationNumber}-${Date.now()}`,
       12
@@ -73,10 +72,8 @@ export async function POST(request: Request) {
         otpVerified: true,
         doctor: {
           create: {
-            fullName: registry.doctor_name,
-            fatherName: registry.father_name,
-            institute: registry.institute,
-            graduationYear: registry.graduation_year,
+            ...pendingProfile,
+            contactEmail,
             medicalRegistrationNumber: registrationNumber,
             consultationFee: 500,
             languages: ["English", "Hindi"],
@@ -87,8 +84,7 @@ export async function POST(request: Request) {
             ],
             clinicLocations: [],
             careerAchievements: [],
-            bio: `Contact: ${contactEmail} · ${registry.doctor_name} — council registration ${registrationNumber}`,
-            ...approvedUpdate,
+            bio: `${registry.doctor_name} — council registration ${registrationNumber}`,
           },
         },
       },
@@ -99,14 +95,19 @@ export async function POST(request: Request) {
       return jsonError("Doctor profile could not be created.", 500);
     }
 
+    const trackingUrl = buildDoctorTrackingUrl(user.doctor.id);
+    const emailSent = await sendDoctorVerificationQueuedEmail(contactEmail, user.doctor.id);
+
     return jsonSuccess(
       {
         message:
-          "Registration successful. OTP verified and your identity matched the medical registry. Your account is approved.",
+          "OTP verified. Your profile verification request has been queued. Check your email for the live tracking link.",
         doctorId: user.doctor.id,
         registrationNumber,
         verificationStatus: user.doctor.verificationStatus,
-        status: "APPROVED",
+        status: "PENDING",
+        trackingUrl,
+        emailSent,
         profile: {
           fullName: registry.doctor_name,
           fatherName: registry.father_name,

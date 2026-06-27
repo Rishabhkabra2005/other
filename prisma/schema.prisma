@@ -131,6 +131,7 @@ model Doctor {
   bio                       String?
   verified                  Boolean                  @default(false)
   medicalRegistrationNumber String?                  @unique
+  contactEmail              String?
   fatherName                String?
   institute                 String?
   graduationYear            Int?
